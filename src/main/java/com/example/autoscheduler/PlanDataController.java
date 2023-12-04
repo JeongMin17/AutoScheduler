@@ -175,6 +175,7 @@ public class PlanDataController {
     }
     // ////////////Existing methods...
 
+    /////
     // Method to combine time codes for the same person
     private String combineTimeCodes(List<PlanData> personData) {
         // Initialize a char array for the combined time code with 48 '0' characters
