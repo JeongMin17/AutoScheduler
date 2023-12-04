@@ -184,8 +184,6 @@ public class PlanDataController {
             combinedTimeCode[i] = '0';
         }
 
-
-
         // Iterate through each PlanData and update the combined time code
         for (PlanData planData : personData) {
             String timeCode = createTypeCode(planData);
