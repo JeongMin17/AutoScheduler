@@ -1,8 +1,6 @@
 package com.example.autoscheduler;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -11,6 +9,9 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 @RestController
 @RequestMapping("/api/plans")
@@ -76,6 +77,105 @@ public class PlanDataController {
         return timeCodeList;
     }
 
+    private static final int POPULATION_SIZE = 48;
+    private static final int GENERATION_COUNT = 100;
+    @GetMapping("/p2")
+    public String[] getTypeCode() {
+        List<PlanData> uniStudents = planDataRepositoryUni.findByStudentIs("대학생");
+        List<Integer> personValues = uniStudents.stream()
+                .map(PlanData::getPerson)
+                .collect(Collectors.toList());
+
+        // Find PlanData by 'person' in the given list
+        List<PlanData> matchingData = planDataRepositoryUni.findByPersonIn(personValues);
+
+        // Extract 'typeCode', 'sex', 'start', 'end', and 'person' values and create a list of TimeCodeDto
+        List<TimeCodeDto> timeCodeList = matchingData.stream()
+                .collect(Collectors.groupingBy(PlanData::getPerson)) // Group by 'person'
+                .entrySet().stream()
+                .map(entry -> {
+                    int person = entry.getKey();
+                    List<PlanData> personData = entry.getValue();
+
+                    // Combine time codes for the same person
+                    String combinedTimeCode = combineTimeCodes(personData);
+
+                    // Create TimeCodeDto
+                    return new TimeCodeDto(person, personData.get(0).getSex(), combinedTimeCode);
+                })
+                .collect(Collectors.toList());
+
+        JSONArray jsonArray = new JSONArray(timeCodeList);
+
+        // "timeCode" 필드만 추출하여 String[] 배열로 묶기
+        String[] timeCodes = new String[jsonArray.length()];
+        for (int i = 0; i < jsonArray.length(); i++) {
+            JSONObject jsonObject = jsonArray.getJSONObject(i);
+            timeCodes[i] = jsonObject.getString("timeCode");
+        }
+
+
+        List<String> population = new ArrayList<>();
+        Random random = new Random();
+
+        for (int i = 0; i < POPULATION_SIZE; i++) {
+            StringBuilder individual = new StringBuilder();
+            for (int j = 0; j < timeCodes[0].length(); j++) {
+                individual.append(random.nextInt(6) + 1);
+            }
+            population.add(individual.toString());
+        }
+
+
+
+        String bestIndividual = Collections.max(population, (a, b) -> fitness(a, timeCodes) - fitness(b, timeCodes));
+
+        return new String[]{bestIndividual};
+
+
+
+    }
+
+
+    private static List<String> selectPopulation(List<String> population) {
+        // 여기에 선택 로직을 추가하세요
+        return population;
+    }
+
+    /*private static List<String> crossover(List<String> population) {
+        // 여기에 교차 로직을 추가하세요
+        return population;
+    }*/
+
+    private static void mutate(List<String> population) {
+        // 여기에 돌연변이 로직을 추가하세요
+    }
+
+    private int fitness(String individual, String[] timeCodes) {
+        int totalScore = 0;
+
+        for (String timeCode : timeCodes) {
+            int score = calculateSimilarityScore(individual, timeCode);
+            totalScore += score;
+        }
+
+        return totalScore;
+    }
+
+    private int calculateSimilarityScore(String individual, String targetTimeCode) {
+        int score = 0;
+
+        for (int i = 0; i < individual.length(); i++) {
+            if (individual.charAt(i) == targetTimeCode.charAt(i)) {
+                score++;
+            }
+        }
+
+        return score;
+    }
+
+
+
     @GetMapping("/genetic-algorithm")
     public List<String> runGeneticAlgorithm() {
         List<TimeCodeDto> timeCodeList = getPersonsStartEndWithTypeCode();
@@ -87,12 +187,12 @@ public class PlanDataController {
 
         // Run genetic algorithm for a random number of generations (200~300)
         int generations = ThreadLocalRandom.current().nextInt(100, 201);
+
         for (int generation = 1; generation <= generations; generation++) {
             List<String> newGeneration = geneticAlgorithm(timeCodes);
-            System.out.println("Generation " + generation + ": " + newGeneration);
+            //System.out.println("Generation " + generation + ": " + newGeneration);
             timeCodes = newGeneration;
         }
-
         // Evaluate fitness scores for the final generation
         Map<String, Integer> fitnessScores = evaluateFitness(timeCodes);
 
