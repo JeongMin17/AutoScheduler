@@ -114,7 +114,6 @@ public class PlanDataController {
             timeCodes[i] = jsonObject.getString("timeCode");
         }
 
-
         List<String> population = new ArrayList<>();
         Random random = new Random();
 
@@ -190,20 +189,39 @@ public class PlanDataController {
 
         for (int generation = 1; generation <= generations; generation++) {
             List<String> newGeneration = geneticAlgorithm(timeCodes);
-            //System.out.println("Generation " + generation + ": " + newGeneration);
+            // System.out.println("Generation " + generation + ": " + newGeneration);
             timeCodes = newGeneration;
         }
         // Evaluate fitness scores for the final generation
         Map<String, Integer> fitnessScores = evaluateFitness(timeCodes);
 
-        // Select the top 7 time codes based on fitness scores
-        List<String> topTimeCodes = fitnessScores.entrySet().stream()
+        // Select the offspring from the final generation
+        List<String> offspring = selectOffspring(timeCodes, fitnessScores);
+
+        // Randomly select 7 offspring from the list
+        List<String> topTimeCodes = selectRandomOffspring(offspring, 7);
+
+        return topTimeCodes;
+    }
+
+    // Method to select offspring from the final generation
+    private List<String> selectOffspring(List<String> timeCodes, Map<String, Integer> fitnessScores) {
+        // Placeholder implementation of offspring selection
+        // You need to implement the actual offspring selection logic
+
+        // For demonstration purposes, select offspring based on fitness scores
+        List<String> selectedOffspring = fitnessScores.entrySet().stream()
                 .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
-                .limit(7)
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
 
-        return topTimeCodes;
+        return selectedOffspring;
+    }
+
+    // Method to select a random subset of offspring
+    private List<String> selectRandomOffspring(List<String> offspring, int count) {
+        Collections.shuffle(offspring);
+        return offspring.subList(0, Math.min(count, offspring.size()));
     }
 
     private List<String> geneticAlgorithm(List<String> timeCodes) {
@@ -228,9 +246,11 @@ public class PlanDataController {
                 int weight = 1;
 
                 if (value == '1') {
-                    weight = (int) (1.5 * weight); // Increase weight for '1'
+                    weight = (int) (5 * weight); // Increase weight for '1'
                 } else if (value == '6') {
                     weight = 3 * weight; // Increase weight for '6'
+                } else if (value == '3') {
+                    weight = 6 * weight; // Increase weight for '6'
                 }
 
                 fitnessScore += weight;

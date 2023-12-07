@@ -34,7 +34,8 @@ dependencies {
 	runtimeOnly 'mysql:mysql-connector-java:8.0.25'
 
 	implementation 'org.jsonx:jsonxml:0.3.2'
-	implementation 'org.json:json:20201115'
+	implementation 'org.json:json:20210307'
+	//implementation 'org.json:json:20090211'
 }
 
 tasks.named('test') {
