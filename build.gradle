@@ -35,6 +35,8 @@ dependencies {
 
 	implementation 'org.jsonx:jsonxml:0.3.2'
 	implementation 'org.json:json:20210307'
+	implementation 'com.googlecode.diff_match_patch:diff_match_patch:2.0.0'
+	implementation 'diff_match_patch:diff_match_patch:current'
 	//implementation 'org.json:json:20090211'
 }
 
