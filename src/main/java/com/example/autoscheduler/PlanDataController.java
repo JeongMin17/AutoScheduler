@@ -1,8 +1,11 @@
 package com.example.autoscheduler;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
@@ -46,10 +49,38 @@ public class PlanDataController {
     }
 
     @GetMapping("/auto/{user}/{setting}")
-    public String getTimeCodes(@PathVariable String user, @PathVariable int setting) {
+    public String getTimeCodes(@PathVariable String user, @PathVariable int setting) throws JsonProcessingException {
         // Find PlanDataUser by 'user_id'
         List<PlanDataUser> userPlans = planDataRepositoryUser.findByUserId(user);
         List<String> auto;
+        List<String> noauto;
+
+
+
+        List<PlanDataUser> noPlans = planDataRepositoryUser.findByUserIdAndPlanIs(user, "고정");
+        LocalDate currentDate = LocalDate.now();
+
+// Filter the list to get entries with start date on the same day as today
+        List<PlanDataUser> todayPlanDataUsers = noPlans.stream()
+                .filter(planDataUser -> planDataUser.getStart().toLocalDate().isEqual(currentDate))
+                .collect(Collectors.toList());
+        List<String> nono = todayPlanDataUsers.stream()
+                .collect(Collectors.groupingBy(planDataUser -> planDataUser.getStartDate().toString())) // Group by 'user_id'
+                .entrySet().stream()
+                .map(entry -> {
+                    List<PlanDataUser> userData = entry.getValue();
+
+                    // Combine time codes for the same user
+                    return combineTimeCodesUser(userData);
+                })
+                .collect(Collectors.toList());
+        noauto = nono;
+
+
+
+
+
+
 
         if (userPlans.size() >= 10) {
             List<String> timeCodesList = userPlans.stream()
@@ -105,11 +136,15 @@ public class PlanDataController {
             System.out.println(timePeriod);
         }
 
+        String time = timePeriods.toString();
 
 
 
+
+        //return noauto.toString();
         return timePeriods.toString();
-        //return bestChromosome.genes;
+
+
 
     }
 
@@ -169,6 +204,7 @@ public class PlanDataController {
 
 
 
+
     static class TimePeriod {
         private final String type;
         private final LocalTime startTime;
@@ -202,9 +238,9 @@ public class PlanDataController {
         @Override
         public String toString() {
             return "{" +
-                    "type=" + type +
-                    ", startTime=" + startTime +
-                    ", endTime=" + endTime +
+                    "\"type\":\"" + type + '\"' +
+                    ", \"startTime\":\"" + startTime + '\"' +
+                    ", \"endTime:\"" + endTime + '\"' +
                     '}';
         }
     }
