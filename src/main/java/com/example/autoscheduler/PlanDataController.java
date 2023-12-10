@@ -53,12 +53,11 @@ public class PlanDataController {
     }
 
     @GetMapping("/auto/{user}/{setting}")
-    public String getTimeCodes(@PathVariable String user, @PathVariable int setting) throws JsonProcessingException {
+    public JsonNode getTimeCodes(@PathVariable String user, @PathVariable int setting) throws JsonProcessingException {
         // Find PlanDataUser by 'user_id'
         List<PlanDataUser> userPlans = planDataRepositoryUser.findByUserId(user);
         List<String> auto;
         List<String> noauto;
-
 
 
         List<PlanDataUser> noPlans = planDataRepositoryUser.findByUserIdAndPlanIs(user, "고정");
@@ -81,11 +80,6 @@ public class PlanDataController {
         noauto = nono;
 
 
-
-
-
-
-
         if (userPlans.size() >= 10) {
             List<String> timeCodesList = userPlans.stream()
                     .collect(Collectors.groupingBy(planDataUser -> planDataUser.getStartDate().toString())) // Group by 'user_id'
@@ -98,7 +92,7 @@ public class PlanDataController {
                     })
                     .collect(Collectors.toList());
             auto = timeCodesList;
-        }else{
+        } else {
             List<PlanData> uniStudents = planDataRepositoryUni.findByStudentIs("대학생");
             List<Integer> personValues = uniStudents.stream()
                     .map(PlanData::getPerson)
@@ -123,7 +117,6 @@ public class PlanDataController {
         }
 
 
-
         // Extract 'planType', 'sex', 'start', 'end', and 'user_id' values and create a list of UserDto
 
 
@@ -143,16 +136,17 @@ public class PlanDataController {
         String time = timePeriods.toString();
 
 
-
         ObjectMapper objectMapper = new ObjectMapper();
 
         // 문자열을 JSON 배열로 변환
+        String timeNew = null;
+        JsonNode jsonNode = null;
         try {
             // 문자열을 JSON 배열로 파싱
-            JsonNode jsonNode = objectMapper.readTree("[" + time + "]");
+            jsonNode = objectMapper.readTree(time);
 
             // JSON 배열을 문자열로 변환
-            String timeNew = objectMapper.writeValueAsString(jsonNode);
+            timeNew = objectMapper.writeValueAsString(jsonNode);
 
             // timeNew 출력
             System.out.println(timeNew);
@@ -161,12 +155,10 @@ public class PlanDataController {
         }
 
 
-
         //return noauto.toString();
-        //return timeNew;
+        return jsonNode;
 
-        return timePeriods.toString();
-
+        //return timePeriods.toString();
 
 
     }
