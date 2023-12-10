@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
@@ -51,23 +50,51 @@ public class PlanDataController {
     public String getTimeCodes(@PathVariable String user) {
         // Find PlanDataUser by 'user_id'
         List<PlanDataUser> userPlans = planDataRepositoryUser.findByUserId(user);
+        List<String> auto;
+
+        if (userPlans.size() >= 10) {
+            List<String> timeCodesList = userPlans.stream()
+                    .collect(Collectors.groupingBy(planDataUser -> planDataUser.getStartDate().toString())) // Group by 'user_id'
+                    .entrySet().stream()
+                    .map(entry -> {
+                        List<PlanDataUser> userData = entry.getValue();
+
+                        // Combine time codes for the same user
+                        return combineTimeCodesUser(userData);
+                    })
+                    .collect(Collectors.toList());
+            auto = timeCodesList;
+        }else{
+            List<PlanData> uniStudents = planDataRepositoryUni.findByStudentIs("대학생");
+            List<Integer> personValues = uniStudents.stream()
+                    .map(PlanData::getPerson)
+                    .collect(Collectors.toList());
+            List<PlanData> matchingData = planDataRepositoryUni.findByPersonIn(personValues);
+
+            List<String> timeCodeList = matchingData.stream()
+                    .collect(Collectors.groupingBy(PlanData::getPerson)) // Group by 'person'
+                    .entrySet().stream()
+                    .map(entry -> {
+                        int person = entry.getKey();
+                        List<PlanData> personData = entry.getValue();
+
+                        // Combine time codes for the same person
+                        String combinedTimeCode = combineTimeCodes(personData);
+
+                        return combinedTimeCode;
+                    })
+                    .collect(Collectors.toList());
+
+            auto = timeCodeList;
+        }
 
         // Extract 'planType', 'sex', 'start', 'end', and 'user_id' values and create a list of UserDto
-        List<String> timeCodesList = userPlans.stream()
-                .collect(Collectors.groupingBy(planDataUser -> planDataUser.getStartDate().toString())) // Group by 'user_id'
-                .entrySet().stream()
-                .map(entry -> {
-                    List<PlanDataUser> userData = entry.getValue();
 
-                    // Combine time codes for the same user
-                    return combineTimeCodesUser(userData);
-                })
-                .collect(Collectors.toList());
 
         int generations = 100;
         int populationSize = 50;
 
-        Chromosome bestChromosome = evolveAndFindBestChromosome(timeCodesList, generations, populationSize);
+        Chromosome bestChromosome = evolveAndFindBestChromosome(auto, generations, populationSize);
 
         System.out.println("Best Chromosome: " + bestChromosome.genes);
 
@@ -76,6 +103,7 @@ public class PlanDataController {
         for (TimePeriod timePeriod : timePeriods) {
             System.out.println(timePeriod);
         }
+
 
 
 
@@ -160,6 +188,8 @@ public class PlanDataController {
                     return "휴식";
                 case 4:
                     return "여가";
+                case 5:
+                    return "휴식";
                 case 6:
                     return "운동";
                 default:
