@@ -125,9 +125,28 @@ public class PlanDataController {
 
         Chromosome bestChromosome = evolveAndFindBestChromosome(auto, generations, populationSize, setting);
 
-        System.out.println("Best Chromosome: " + bestChromosome.genes);
+        //System.out.println("Best Chromosome: " + bestChromosome.genes);
 
-        List<TimePeriod> timePeriods = parseTimeCode(bestChromosome.genes);
+        String best = bestChromosome.genes;
+        String noautoplan = noauto.toString();
+        String nop = noautoplan.substring(1, noautoplan.length() - 1);
+
+        StringBuilder result = new StringBuilder(best);
+
+        for (int i = 0; i < nop.length(); i++) {
+            // nop의 해당 위치가 '0'이 아닌 경우에만 best 값을 0으로 바꿈
+            if (nop.charAt(i) != '0') {
+                result.setCharAt(i, '0');
+            }
+        }
+
+        String whyno = result.toString();
+        bestChromosome.genes = whyno;
+
+        System.out.println("Best Chromosome: " + whyno);
+
+        List<TimePeriod> timePeriods = parseTimeCode(whyno);
+        //List<TimePeriod> timePeriods = parseTimeCode(whyno);
 
         for (TimePeriod timePeriod : timePeriods) {
             System.out.println(timePeriod);
@@ -149,13 +168,15 @@ public class PlanDataController {
             timeNew = objectMapper.writeValueAsString(jsonNode);
 
             // timeNew 출력
-            System.out.println(timeNew);
+            //System.out.println(timeNew);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         }
 
 
-        //return noauto.toString();
+
+
+        //return bestChromosome.genes;
         return jsonNode;
 
         //return timePeriods.toString();
@@ -648,6 +669,7 @@ public class PlanDataController {
 
         Chromosome(String genes) {
             this.genes = genes;
+            this.fitness = 0.0; // 또는 다른 초기값 설정
         }
     }
 
