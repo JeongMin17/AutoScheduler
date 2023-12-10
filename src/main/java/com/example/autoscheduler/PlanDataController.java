@@ -1,7 +1,11 @@
 package com.example.autoscheduler;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -140,8 +144,27 @@ public class PlanDataController {
 
 
 
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        // 문자열을 JSON 배열로 변환
+        try {
+            // 문자열을 JSON 배열로 파싱
+            JsonNode jsonNode = objectMapper.readTree("[" + time + "]");
+
+            // JSON 배열을 문자열로 변환
+            String timeNew = objectMapper.writeValueAsString(jsonNode);
+
+            // timeNew 출력
+            System.out.println(timeNew);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+
+
 
         //return noauto.toString();
+        //return timeNew;
+
         return timePeriods.toString();
 
 
@@ -240,7 +263,7 @@ public class PlanDataController {
             return "{" +
                     "\"type\":\"" + type + '\"' +
                     ", \"startTime\":\"" + startTime + '\"' +
-                    ", \"endTime:\"" + endTime + '\"' +
+                    ", \"endTime\":\"" + endTime + '\"' +
                     '}';
         }
     }
