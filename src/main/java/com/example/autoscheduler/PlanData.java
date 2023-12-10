@@ -97,4 +97,13 @@ public class PlanData {
     public void setStudent(String student) {
         this.student = student;
     }
+
+    @Override
+    public String toString() {
+        return "PlanData{" +
+                "type='" + type + '\'' +
+                ", start=" + start +
+                ", end=" + end +
+                '}';
+    }
 }
