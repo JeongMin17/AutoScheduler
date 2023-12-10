@@ -1,10 +1,7 @@
 package com.example.autoscheduler;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -12,6 +9,7 @@ import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
+@CrossOrigin(origins = "http://localhost:3000")
 @RestController
 @RequestMapping("/api/plans")
 public class PlanDataController {
@@ -114,6 +112,7 @@ public class PlanDataController {
         //return bestChromosome.genes;
 
     }
+
 
     public static List<TimePeriod> parseTimeCode(String timeCode) {
         List<TimePeriod> timePeriods = new ArrayList<>();
