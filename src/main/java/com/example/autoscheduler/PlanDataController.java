@@ -32,6 +32,7 @@ public class PlanDataController {
         typeCodeMap.put("저녁", 2);
         typeCodeMap.put("점심식사", 2);
         typeCodeMap.put("아침식사", 2);
+        typeCodeMap.put("식사", 2);
         typeCodeMap.put("아침", 2);
         typeCodeMap.put("점심", 2);
         typeCodeMap.put("휴식", 3);
