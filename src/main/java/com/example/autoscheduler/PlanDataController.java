@@ -46,8 +46,8 @@ public class PlanDataController {
         typeCodeMap.put("운동", 6);
     }
 
-    @GetMapping("/auto/{user}")
-    public String getTimeCodes(@PathVariable String user) {
+    @GetMapping("/auto/{user}/{setting}")
+    public String getTimeCodes(@PathVariable String user, @PathVariable int setting) {
         // Find PlanDataUser by 'user_id'
         List<PlanDataUser> userPlans = planDataRepositoryUser.findByUserId(user);
         List<String> auto;
@@ -96,7 +96,7 @@ public class PlanDataController {
         int generations = 100;
         int populationSize = 50;
 
-        Chromosome bestChromosome = evolveAndFindBestChromosome(auto, generations, populationSize);
+        Chromosome bestChromosome = evolveAndFindBestChromosome(auto, generations, populationSize, setting);
 
         System.out.println("Best Chromosome: " + bestChromosome.genes);
 
@@ -210,6 +210,23 @@ public class PlanDataController {
     }
 
 
+    private double calculateSettingWeight(int setting, List<String> timeCodeList) {
+        double baseWeight = 0.5; // 기본 가중치
+        double matchingWeight = 0.1; // 똑같은 숫자가 들어있을 때 부여할 가중치
+
+        for (String timeCode : timeCodeList) {
+            for (int i = 0; i < timeCode.length(); i++) {
+                int timeCodeDigit = Character.getNumericValue(timeCode.charAt(i));
+                if (timeCodeDigit == setting) {
+                    // 똑같은 숫자가 있을 때 가중치 적용
+                    return baseWeight + matchingWeight;
+                }
+            }
+        }
+
+        // 똑같은 숫자가 없을 때 기본 가중치 반환
+        return baseWeight;
+    }
     @GetMapping("/university-students")
     public List<Integer> getUniversityStudents() {
         List<PlanData> uniStudents = planDataRepositoryUni.findByStudentIs("대학생");
@@ -281,7 +298,7 @@ public class PlanDataController {
         int generations = 100;
         int populationSize = 50;
 
-        Chromosome bestChromosome = evolveAndFindBestChromosome(timeCodeList, generations, populationSize);
+        Chromosome bestChromosome = evolveAndFindBestChromosome(timeCodeList, generations, populationSize, 9);
 
         System.out.println("Best Chromosome: " + bestChromosome.genes);
 
@@ -313,7 +330,7 @@ public class PlanDataController {
         int generations = 200;
         int populationSize = 50;
 
-        Chromosome bestChromosome = evolveAndFindBestChromosome(timeCodeList, generations, populationSize);
+        Chromosome bestChromosome = evolveAndFindBestChromosome(timeCodeList, generations, populationSize, 9);
 
         System.out.println("Best Chromosome: " + bestChromosome.genes);
 
@@ -347,7 +364,7 @@ public class PlanDataController {
         int generations = 300;
         int populationSize = 30;
 
-        Chromosome bestChromosome = evolveAndFindBestChromosome(timeCodeList, generations, populationSize);
+        Chromosome bestChromosome = evolveAndFindBestChromosome(timeCodeList, generations, populationSize, 9);
 
         System.out.println("Best Chromosome: " + bestChromosome.genes);
 
@@ -356,16 +373,16 @@ public class PlanDataController {
 
     }
 
-    static Chromosome evolveAndFindBestChromosome(List<String> timeCodeList, int generations, int populationSize) {
-        List<Chromosome> population = initializePopulation(populationSize, timeCodeList.get(0).length());
+    static Chromosome evolveAndFindBestChromosome(List<String> timeCodeList, int generations, int populationSize, int setting) {
+        List<Chromosome> population = initializePopulation(populationSize, timeCodeList.get(0).length(), setting);
 
         Chromosome bestChromosome = null;
         for (int generation = 0; generation < generations; generation++) {
-            evaluatePopulation(population, timeCodeList);
+            evaluatePopulation(population, timeCodeList, setting);
             population = evolvePopulation(population);
 
             // 현재 세대에서 가장 좋은 개체를 기록
-            Chromosome currentBest = getBestChromosome(population, timeCodeList);
+            Chromosome currentBest = getBestChromosome(population, timeCodeList, setting);
             if (bestChromosome == null || currentBest.fitness > bestChromosome.fitness) {
                 bestChromosome = new Chromosome(currentBest.genes);
             }
@@ -374,19 +391,22 @@ public class PlanDataController {
         return bestChromosome;
     }
 
-
-    static List<Chromosome> initializePopulation(int populationSize, int geneLength) {
+    static List<Chromosome> initializePopulation(int populationSize, int geneLength, int setting) {
         List<Chromosome> population = new ArrayList<>();
-        Random random = new Random();
+        Random random = new Random(System.currentTimeMillis());
 
         for (int i = 0; i < populationSize; i++) {
             StringBuilder genes = new StringBuilder();
             for (int j = 0; j < geneLength; j++) {
                 if (j >= 0 && j <= 13) {
                     genes.append("0"); // 1번째부터 14번째까지는 항상 5로 고정
-                }
-                else {
-                    genes.append(random.nextInt(7)); // 0~6의 숫자를 랜덤으로 생성
+                } else {
+                    // 14번째 이후의 gene 중 일부를 setting 값에 따라 고정
+                    if (random.nextDouble() < calculateSettingProbability(setting)) {
+                        genes.append(setting);
+                    } else {
+                        genes.append(random.nextInt(7)); // 0~6의 숫자를 랜덤으로 생성
+                    }
                 }
             }
             genes.setCharAt(14, '0'); // 15번째를 0으로 고정
@@ -396,21 +416,34 @@ public class PlanDataController {
         return population;
     }
 
-    static void evaluatePopulation(List<Chromosome> population, List<String> timeCodeList) {
+    static double calculateSettingProbability(int setting) {
+        // setting 값에 따라 고정될 확률을 계산하여 반환
+        // 예를 들어, setting이 1일 때는 0.1, setting이 2일 때는 0.2의 확률로 고정
+        return 0.1 * setting;
+    }
+
+    static void evaluatePopulation(List<Chromosome> population, List<String> timeCodeList, int setting) {
         for (Chromosome chromosome : population) {
-            double fitness = calculateFitness(chromosome.genes, timeCodeList);
+            double fitness = calculateFitness(chromosome.genes, timeCodeList, setting);
             chromosome.fitness = fitness;
         }
     }
 
-    static double calculateFitness(String genes, List<String> timeCodeList) {
+    static double calculateFitness(String genes, List<String> timeCodeList, int setting) {
         double totalFitness = 0.0;
 
         for (String timeCode : timeCodeList) {
             int matchCount = 0;
+            int settingCount = 0;
+
             for (int i = 0; i < genes.length(); i++) {
                 if (genes.charAt(i) == timeCode.charAt(i)) {
                     matchCount++;
+                }
+
+                // 추가: {setting} 값에 따라 가중치를 조절
+                if (Character.getNumericValue(timeCode.charAt(i)) == setting) {
+                    settingCount++;
                 }
             }
 
@@ -429,9 +462,28 @@ public class PlanDataController {
             // 추가: 다른 유사도 측정 방식에 대한 가중치 부여
             double customSimilarityWeight = calculateCustomSimilarity(genes, timeCode);
             totalFitness += customSimilarityWeight;
+
+            // 추가: {setting} 값에 따라 가중치를 조절
+            double settingWeight = calculateSettingWeight(setting, settingCount);
+            totalFitness += settingWeight;
         }
 
         return totalFitness / timeCodeList.size();
+    }
+
+
+
+    static double calculateSettingWeight(int setting, int settingCount) {
+        // {setting} 값에 따라 적절한 가중치를 계산하여 반환
+        // 예를 들어, setting이 1일 때는 0.1 * settingCount, setting이 2일 때는 0.2 * settingCount를 반환하도록 설정
+        if(setting == 6)
+            setting = 100;
+        return 1 * setting * settingCount;
+    }
+
+    static boolean containsSettingValue(String timeCode, int setting) {
+        // timeCode에 {setting} 값이 포함되어 있는지 확인
+        return timeCode.chars().anyMatch(ch -> Character.getNumericValue(ch) == setting);
     }
 
     // 사용자 정의 유사도 측정 메서드 (예시)
@@ -534,8 +586,8 @@ public class PlanDataController {
         return false; // 연속된 숫자가 5개 이상이 아니면 false 반환
     }
 
-    static Chromosome getBestChromosome(List<Chromosome> population, List<String> timeCodeList) {
-        evaluatePopulation(population, timeCodeList);
+    static Chromosome getBestChromosome(List<Chromosome> population, List<String> timeCodeList, int setting) {
+        evaluatePopulation(population, timeCodeList, setting);
         return Collections.max(population, Comparator.comparingDouble(chromosome -> chromosome.fitness));
     }
 
